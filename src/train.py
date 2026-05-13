@@ -44,7 +44,44 @@ def get_callbacks(
     """
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 9: implement get_callbacks()")
+    # raise NotImplementedError("TODO 9: implement get_callbacks()")
+        # Checkpoint file path
+    checkpoint_path = checkpoint_dir / f"{model_name}_best.keras"
+
+    callbacks = [
+
+        # Save best model
+        keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_path,
+            monitor=monitor,
+            save_best_only=True,
+            verbose=1,
+        ),
+
+        # Stop training early if validation metric stops improving
+        keras.callbacks.EarlyStopping(
+            monitor=monitor,
+            patience=patience,
+            restore_best_weights=True,
+            verbose=1,
+        ),
+
+        # Reduce learning rate when validation metric plateaus
+        keras.callbacks.ReduceLROnPlateau(
+            monitor=monitor,
+            factor=0.5,
+            patience=max(1, patience // 2),
+            min_lr=1e-7,
+            verbose=1,
+        ),
+
+        # TensorBoard logging
+        keras.callbacks.TensorBoard(
+            log_dir=f"logs/{model_name}"
+        ),
+    ]
+
+    return callbacks
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
