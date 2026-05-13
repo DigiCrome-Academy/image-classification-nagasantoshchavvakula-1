@@ -51,56 +51,42 @@ def build_baseline_mlp(
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
     # raise NotImplementedError("TODO 4: implement build_baseline_mlp()")
-    # Custom Sequential to expose accuracy metric for pytest
+
+    # Create ONE reusable metric object
+    accuracy_metric = keras.metrics.BinaryAccuracy(name="accuracy")
+
+    # Custom Sequential class
     class CustomSequential(keras.Sequential):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+            # store metric once
+            self._extra_metrics = [accuracy_metric]
+
         @property
         def metrics(self):
-            return super().metrics + [
-                keras.metrics.BinaryAccuracy(name="accuracy")
-            ]
+            # combine default metrics + explicit accuracy metric
+            return super().metrics + self._extra_metrics
 
-    model = CustomSequential()
+    optimizer_instance = keras.optimizers.get({
+        "class_name": optimizer,
+        "config": {"learning_rate": learning_rate},
+    })
 
-    # Input + Flatten
-    model.add(layers.Input(shape=input_shape))
-    model.add(layers.Flatten())
+    model = CustomSequential([
+        layers.Input(shape=input_shape),
+        layers.Flatten(),
+        layers.Dense(512, activation=activation),
+        layers.Dense(256, activation=activation),
+        layers.Dense(128, activation=activation),
+        layers.Dense(num_classes, activation="sigmoid"),
+    ])
 
-    # Dense helper
-    def add_dense_block(units):
-
-        if activation == "leaky_relu":
-            model.add(layers.Dense(units))
-            model.add(layers.LeakyReLU())
-
-        else:
-            model.add(layers.Dense(units, activation=activation))
-
-    # Hidden layers
-    add_dense_block(512)
-    add_dense_block(256)
-    add_dense_block(128)
-
-    # Output layer
-    model.add(layers.Dense(num_classes, activation="sigmoid"))
-
-    # Optimizers
-    optimizer_dict = {
-        "sgd": keras.optimizers.SGD(learning_rate=learning_rate),
-        "adam": keras.optimizers.Adam(learning_rate=learning_rate),
-        "rmsprop": keras.optimizers.RMSprop(learning_rate=learning_rate),
-        "nadam": keras.optimizers.Nadam(learning_rate=learning_rate),
-    }
-
-    opt = optimizer_dict.get(
-        optimizer,
-        keras.optimizers.Adam(learning_rate=learning_rate)
-    )
-
-    # Compile
     model.compile(
-        optimizer=opt,
+        optimizer=optimizer_instance,
         loss="binary_crossentropy",
-        metrics=["accuracy"]
+        metrics=[accuracy_metric],
     )
 
     return model
