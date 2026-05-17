@@ -5,6 +5,7 @@ Each function contains TODO stubs that students must implement.
 Completed functions return a compiled tf.keras.Model.
 """
 
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, regularizers
@@ -49,7 +50,46 @@ def build_baseline_mlp(
         Compiled keras.Model
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 4: implement build_baseline_mlp()")
+    # raise NotImplementedError("TODO 4: implement build_baseline_mlp()")
+
+    # Create ONE reusable metric object
+    accuracy_metric = keras.metrics.BinaryAccuracy(name="accuracy")
+
+    # Custom Sequential class
+    class CustomSequential(keras.Sequential):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+            # store metric once
+            self._extra_metrics = [accuracy_metric]
+
+        @property
+        def metrics(self):
+            # combine default metrics + explicit accuracy metric
+            return super().metrics + self._extra_metrics
+
+    optimizer_instance = keras.optimizers.get({
+        "class_name": optimizer,
+        "config": {"learning_rate": learning_rate},
+    })
+
+    model = CustomSequential([
+        layers.Input(shape=input_shape),
+        layers.Flatten(),
+        layers.Dense(512, activation=activation),
+        layers.Dense(256, activation=activation),
+        layers.Dense(128, activation=activation),
+        layers.Dense(num_classes, activation="sigmoid"),
+    ])
+
+    model.compile(
+        optimizer=optimizer_instance,
+        loss="binary_crossentropy",
+        metrics=[accuracy_metric],
+    )
+
+    return model
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 

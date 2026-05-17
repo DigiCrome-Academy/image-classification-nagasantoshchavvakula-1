@@ -3,6 +3,7 @@ Training utilities — callbacks, schedules, and the main training loop.
 Students implement the TODO sections; the rest is scaffolding.
 """
 
+import math
 import os
 from pathlib import Path
 import tensorflow as tf
@@ -43,7 +44,44 @@ def get_callbacks(
     """
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 9: implement get_callbacks()")
+    # raise NotImplementedError("TODO 9: implement get_callbacks()")
+        # Checkpoint file path
+    checkpoint_path = checkpoint_dir / f"{model_name}_best.keras"
+
+    callbacks = [
+
+        # Save best model
+        keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_path,
+            monitor=monitor,
+            save_best_only=True,
+            verbose=1,
+        ),
+
+        # Stop training early if validation metric stops improving
+        keras.callbacks.EarlyStopping(
+            monitor=monitor,
+            patience=patience,
+            restore_best_weights=True,
+            verbose=1,
+        ),
+
+        # Reduce learning rate when validation metric plateaus
+        keras.callbacks.ReduceLROnPlateau(
+            monitor=monitor,
+            factor=0.5,
+            patience=max(1, patience // 2),
+            min_lr=1e-7,
+            verbose=1,
+        ),
+
+        # TensorBoard logging
+        keras.callbacks.TensorBoard(
+            log_dir=f"logs/{model_name}"
+        ),
+    ]
+
+    return callbacks
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -71,7 +109,37 @@ def get_lr_schedule(
         keras.callbacks.LearningRateScheduler
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 10: implement get_lr_schedule()")
+    # raise NotImplementedError("TODO 10: implement get_lr_schedule()")
+    def lr_schedule(epoch, lr):
+        
+        # Step Decay
+        if schedule_type == "step":
+            return initial_lr * (0.5 ** (epoch // 10))
+        
+        # Cosine Annealing
+        elif schedule_type == "cosine":
+            cosine_decay = 0.5 * (
+                1+math.cos(math.pi * epoch / epochs)
+            )
+            return initial_lr * cosine_decay
+        
+        # Warm-up + Cosine Decay
+        elif schedule_type == "warmup":
+            
+            warmup_epochs = 5
+            # linear warm-up
+            if epoch < warmup_epochs:
+                return initial_lr * ((epoch + 1) / warmup_epochs)
+            
+            # cosine decay after warm-up
+            decay_epochs = epochs - warmup_epochs
+            cosine_decay = 0.5 * (
+                1 + math.cos(math.pi * (epoch - warmup_epochs) / decay_epochs)
+            )
+            return initial_lr * cosine_decay
+        # Default to initial_lr if schedule_type is unrecognized
+        return initial_lr
+    return keras.callbacks.LearningRateScheduler(lr_schedule)
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -104,7 +172,15 @@ def train_model(
         keras.callbacks.History
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 11: implement train_model()")
+    # raise NotImplementedError("TODO 11: implement train_model()")
+    history = model.fit(
+        train_data,
+        validation_data=val_data,
+        epochs=epochs,
+        class_weight=class_weights,
+        callbacks=callbacks
+    )
+    return history
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
