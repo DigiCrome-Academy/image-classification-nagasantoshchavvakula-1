@@ -55,7 +55,7 @@ def get_callbacks(
             filepath=checkpoint_path,
             monitor=monitor,
             save_best_only=True,
-            verbose=1,
+            # verbose=1,
         ),
 
         # Stop training early if validation metric stops improving
@@ -63,16 +63,17 @@ def get_callbacks(
             monitor=monitor,
             patience=patience,
             restore_best_weights=True,
-            verbose=1,
+            # verbose=1,
         ),
 
         # Reduce learning rate when validation metric plateaus
         keras.callbacks.ReduceLROnPlateau(
             monitor=monitor,
             factor=0.5,
-            patience=max(1, patience // 2),
+            # patience=max(1, patience // 2),
+            patience=patience // 2,
             min_lr=1e-7,
-            verbose=1,
+            # verbose=1,
         ),
 
         # TensorBoard logging
