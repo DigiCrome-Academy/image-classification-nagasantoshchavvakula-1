@@ -45,14 +45,15 @@ def get_callbacks(
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
     # raise NotImplementedError("TODO 9: implement get_callbacks()")
-        # Checkpoint file path
-    checkpoint_path = checkpoint_dir / f"{model_name}_best.keras"
+    # Checkpoint file path
+    # checkpoint_path = checkpoint_dir / f"{model_name}_best.keras"
+    checkpoint_path = Path.cwd().parent / "models" / f"{model_name}_best.keras"
 
     callbacks = [
 
         # Save best model
         keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_path,
+            filepath=str(checkpoint_path),
             monitor=monitor,
             save_best_only=True,
             # verbose=1,
@@ -78,7 +79,8 @@ def get_callbacks(
 
         # TensorBoard logging
         keras.callbacks.TensorBoard(
-            log_dir=f"logs/{model_name}"
+            # log_dir=f"logs/{model_name}"
+            log_dir=str(Path.cwd().parent / "logs" / model_name)
         ),
     ]
 
