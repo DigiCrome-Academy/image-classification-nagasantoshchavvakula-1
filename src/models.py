@@ -130,7 +130,62 @@ def build_advanced_nn(
         Compiled keras.Model
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 5: implement build_advanced_nn()")
+    # raise NotImplementedError("TODO 5: implement build_advanced_nn()")
+    
+    # Input layer
+    inputs = keras.Input(shape=input_shape)
+    
+    # Flatten layer
+    x = layers.Flatten()(inputs)
+    
+    # Dense block 1
+    x = layers.Dense(512, activation="relu", kernel_regularizer=regularizers.l2(l2_lambda))(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(dropout_rate)(x)
+    
+    # Dense block 2
+    x = layers.Dense(256, activation="relu", kernel_regularizer=regularizers.l2(l2_lambda))(x)
+    x = layers.BatchNormalization()(x)
+    x= layers.Dropout(dropout_rate)(x)
+    
+    # Dense block 3
+    x = layers.Dense(128, activation="relu", kernel_regularizer=regularizers.l2(l2_lambda))(x)
+    x = layers.BatchNormalization()(x)
+    
+    # Dense block 4
+    x = layers.Dense(64, activation="relu", kernel_regularizer=regularizers.l2(l2_lambda))(x)
+    x = layers.BatchNormalization()(x)
+    
+    # Output layer
+    outputs = layers.Dense(1, activation="sigmoid")(x)
+    
+    # Create reusable metrics
+    accuracy_metric = keras.metrics.BinaryAccuracy(name="accuracy")
+    auc_metric = tf.keras.metrics.AUC(name="auc")
+
+    # Custom Functional model
+    class CustomModel(keras.Model):
+
+        @property
+        def metrics(self):
+            return [accuracy_metric, auc_metric]
+    
+    # Build and compile model
+    model = CustomModel(inputs=inputs, outputs=outputs)
+    
+    # compile with Adam optimizer and gradient clipping
+    optimizer_instance = keras.optimizers.Adam(
+        learning_rate=learning_rate, 
+        clipnorm=1.0, 
+    )
+
+    model.compile(
+        optimizer=optimizer_instance,
+        loss="binary_crossentropy",
+        metrics=[accuracy_metric, auc_metric],
+    )
+    return model
+
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
