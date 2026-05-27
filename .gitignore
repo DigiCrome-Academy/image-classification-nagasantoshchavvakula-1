@@ -9,6 +9,7 @@ data/*.tar.gz
 models/*.keras
 models/*.h5
 models/saved_model/
+notebooks/models/
 
 # Python
 __pycache__/
@@ -34,3 +35,4 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
