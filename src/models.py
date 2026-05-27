@@ -52,44 +52,84 @@ def build_baseline_mlp(
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
     # raise NotImplementedError("TODO 4: implement build_baseline_mlp()")
 
-    # Create ONE reusable metric object
+    # Metric instance
     accuracy_metric = keras.metrics.BinaryAccuracy(name="accuracy")
 
-    # Custom Sequential class
+    # Custom Sequential model
     class CustomSequential(keras.Sequential):
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-            # store metric once
-            self._extra_metrics = [accuracy_metric]
 
         @property
         def metrics(self):
-            # combine default metrics + explicit accuracy metric
-            return super().metrics + self._extra_metrics
 
+            # preserve ALL keras internal metrics
+            base_metrics = super().metrics
+
+            # avoid duplicate metric insertion
+            metric_names = [m.name for m in base_metrics]
+
+            if "accuracy" not in metric_names:
+                base_metrics.append(accuracy_metric)
+
+            return base_metrics
+
+    # # Optimizer
+    # optimizer_instance = keras.optimizers.get({
+    #     "class_name": optimizer,
+    #     "config": {"learning_rate": learning_rate},
+    # })
+
+    # # Model
+    # model = CustomSequential([
+    #     layers.Input(shape=input_shape),
+    #     layers.Flatten(),
+
+    #     layers.Dense(512, activation=activation),
+    #     layers.Dense(256, activation=activation),
+    #     layers.Dense(128, activation=activation),
+
+    #     layers.Dense(num_classes, activation="sigmoid"),
+    # ])
+
+    # # Compile
+    # model.compile(
+    #     optimizer=optimizer_instance,
+    #     loss="binary_crossentropy",
+    #     metrics=[accuracy_metric],
+    # )
+
+    # return model
     optimizer_instance = keras.optimizers.get({
         "class_name": optimizer,
         "config": {"learning_rate": learning_rate},
     })
 
-    model = CustomSequential([
+    model = keras.Sequential([
         layers.Input(shape=input_shape),
         layers.Flatten(),
+
         layers.Dense(512, activation=activation),
         layers.Dense(256, activation=activation),
         layers.Dense(128, activation=activation),
+
         layers.Dense(num_classes, activation="sigmoid"),
     ])
 
     model.compile(
         optimizer=optimizer_instance,
         loss="binary_crossentropy",
-        metrics=[accuracy_metric],
+        metrics=[
+            keras.metrics.BinaryAccuracy(name="accuracy")
+        ],
+    )
+
+    # IMPORTANT FIX FOR PYTEST
+    model.compiled_metrics.build(
+        y_pred=tf.zeros((1, 1)),
+        y_true=tf.zeros((1, 1)),
     )
 
     return model
+
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -130,7 +170,155 @@ def build_advanced_nn(
         Compiled keras.Model
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 5: implement build_advanced_nn()")
+    # raise NotImplementedError("TODO 5: implement build_advanced_nn()")
+    
+    # # Input layer
+    # inputs = keras.Input(shape=input_shape)
+
+    # # Flatten
+    # x = layers.Flatten()(inputs)
+
+    # # Dense Block 1
+    # x = layers.Dense(
+    #     512,
+    #     activation="relu",
+    #     kernel_regularizer=regularizers.l2(l2_lambda)
+    # )(x)
+    # x = layers.BatchNormalization()(x)
+    # x = layers.Dropout(dropout_rate)(x)
+
+    # # Dense Block 2
+    # x = layers.Dense(
+    #     256,
+    #     activation="relu",
+    #     kernel_regularizer=regularizers.l2(l2_lambda)
+    # )(x)
+    # x = layers.BatchNormalization()(x)
+    # x = layers.Dropout(dropout_rate)(x)
+
+    # # Dense Block 3
+    # x = layers.Dense(
+    #     128,
+    #     activation="relu",
+    #     kernel_regularizer=regularizers.l2(l2_lambda)
+    # )(x)
+    # x = layers.BatchNormalization()(x)
+
+    # # Dense Block 4
+    # x = layers.Dense(
+    #     64,
+    #     activation="relu",
+    #     kernel_regularizer=regularizers.l2(l2_lambda)
+    # )(x)
+    # x = layers.BatchNormalization()(x)
+
+    # # Output
+    # outputs = layers.Dense(1, activation="sigmoid")(x)
+
+    # # Metrics
+    # accuracy_metric = keras.metrics.BinaryAccuracy(name="accuracy")
+    # auc_metric = keras.metrics.AUC(name="auc")
+
+    # # Custom model
+    # class CustomModel(keras.Model):
+
+    #     @property
+    #     def metrics(self):
+
+    #         # preserve keras internal metrics
+    #         base_metrics = super().metrics
+
+    #         metric_names = [m.name for m in base_metrics]
+
+    #         if "accuracy" not in metric_names:
+    #             base_metrics.append(accuracy_metric)
+
+    #         if "auc" not in metric_names:
+    #             base_metrics.append(auc_metric)
+
+    #         return base_metrics
+
+    # # Build model
+    # model = CustomModel(inputs=inputs, outputs=outputs)
+
+    # # Optimizer
+    # optimizer_instance = keras.optimizers.Adam(
+    #     learning_rate=learning_rate,
+    #     clipnorm=1.0,
+    # )
+
+    # # Compile
+    # model.compile(
+    #     optimizer=optimizer_instance,
+    #     loss="binary_crossentropy",
+    #     metrics=[
+    #         accuracy_metric,
+    #         auc_metric,
+    #     ],
+    # )
+
+    # return model
+    inputs = keras.Input(shape=input_shape)
+
+    x = layers.Flatten()(inputs)
+
+    x = layers.Dense(
+        512,
+        activation="relu",
+        kernel_regularizer=regularizers.l2(l2_lambda)
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(dropout_rate)(x)
+
+    x = layers.Dense(
+        256,
+        activation="relu",
+        kernel_regularizer=regularizers.l2(l2_lambda)
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(dropout_rate)(x)
+
+    x = layers.Dense(
+        128,
+        activation="relu",
+        kernel_regularizer=regularizers.l2(l2_lambda)
+    )(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Dense(
+        64,
+        activation="relu",
+        kernel_regularizer=regularizers.l2(l2_lambda)
+    )(x)
+    x = layers.BatchNormalization()(x)
+
+    outputs = layers.Dense(1, activation="sigmoid")(x)
+
+    model = keras.Model(inputs=inputs, outputs=outputs)
+
+    optimizer_instance = keras.optimizers.Adam(
+        learning_rate=learning_rate,
+        clipnorm=1.0,
+    )
+
+    model.compile(
+        optimizer=optimizer_instance,
+        loss="binary_crossentropy",
+        metrics=[
+            keras.metrics.BinaryAccuracy(name="accuracy"),
+            keras.metrics.AUC(name="auc"),
+        ],
+    )
+
+    # IMPORTANT FIX FOR PYTEST
+    model.compiled_metrics.build(
+        y_pred=tf.zeros((1, 1)),
+        y_true=tf.zeros((1, 1)),
+    )
+
+    return model
+    
+
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
