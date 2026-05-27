@@ -46,8 +46,7 @@ def get_callbacks(
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
     # raise NotImplementedError("TODO 9: implement get_callbacks()")
     # Checkpoint file path
-    # checkpoint_path = checkpoint_dir / f"{model_name}_best.keras"
-    checkpoint_path = Path.cwd().parent / "models" / f"{model_name}_best.keras"
+    checkpoint_path = checkpoint_dir / f"{model_name}_best.h5"
 
     callbacks = [
 
@@ -71,16 +70,16 @@ def get_callbacks(
         keras.callbacks.ReduceLROnPlateau(
             monitor=monitor,
             factor=0.5,
-            # patience=max(1, patience // 2),
-            patience=patience // 2,
+            patience=max(1, patience // 2),
+            # patience=patience // 2,
             min_lr=1e-7,
             # verbose=1,
         ),
 
         # TensorBoard logging
         keras.callbacks.TensorBoard(
-            # log_dir=f"logs/{model_name}"
-            log_dir=str(Path.cwd().parent / "logs" / model_name)
+            log_dir=f"logs/{model_name}"
+            # log_dir=str(Path.cwd().parent / "logs" / model_name)
         ),
     ]
 
