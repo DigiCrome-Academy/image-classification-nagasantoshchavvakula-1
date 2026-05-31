@@ -361,7 +361,50 @@ def unfreeze_top_layers(model: keras.Model, num_layers: int = 20) -> keras.Model
         Re-compiled keras.Model
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 7: implement unfreeze_top_layers()")
+    # raise NotImplementedError("TODO 7: implement unfreeze_top_layers()")
+    
+    # Find the largest nested model
+    base_model = None
+    max_layers = 0
+    
+    for layer in model.layers:
+        if isinstance(layer, keras.Model):
+            if len(layer.layers) > max_layers:
+                max_layers = len(layer.layers)
+                base_model = layer
+                
+    if base_model is None:
+        raise ValueError("Could not load pretrained base model.")
+    
+    # Enable training on base model
+    base_model.trainable = True
+    
+    # Freeze all except last num_layers
+    for layer in base_model.layers[:-num_layers]:
+        layer.trainable = False
+    
+    for layer in base_model.layers[:-num_layers]:
+        layer.trainable = True
+        
+    # Recompile with lower learning rate
+    model.compile(
+        optimizer=keras.optimizers.Adam(
+            learning_rate=1e-5
+        ),
+        loss="binary_crossentropy",
+        metrics=[
+            keras.metrics.BinaryAccuracy(name="accuracy"),
+            keras.metrics.AUC(name="auc"),
+        ],
+    )
+    
+    # Helps some pytest metric checks
+    model.compiled_metrics.build(
+        y_pred=tf.zeros((1, 1)),
+        y_true=tf.zeros((1, 1)),
+    )
+    
+    return model
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
