@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 from sklearn.metrics import (
+    accuracy_score,
     classification_report,
     confusion_matrix,
     roc_auc_score,
@@ -37,7 +38,32 @@ def evaluate_model(model: keras.Model, test_data) -> dict:
         dict of evaluation metrics.
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 12: implement evaluate_model()")
+    # raise NotImplementedError("TODO 12: implement evaluate_model()")
+    
+    from sklearn.metrics import precision_score, recall_score, f1_score
+    # Generate prediction probabilities
+    y_probs = model.predict(test_data).squeeze()
+
+    # Convert probabilities to binary predictions
+    y_pred = (y_probs >= 0.5).astype(int)
+
+    # Collect true labels
+    y_true = np.concatenate(
+        [y for _, y in test_data]
+    )
+
+    # Return all required metrics
+    return {
+        "accuracy": accuracy_score(y_true, y_pred),
+        "precision": precision_score(y_true, y_pred),
+        "recall": recall_score(y_true, y_pred),
+        "f1": f1_score(y_true, y_pred),
+        "auc": roc_auc_score(y_true, y_probs),
+        "roc_curve": roc_curve(y_true, y_probs),
+        "confusion_matrix": confusion_matrix(y_true, y_pred),
+        "classification_report": classification_report(y_true, y_pred),
+    }
+    
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
