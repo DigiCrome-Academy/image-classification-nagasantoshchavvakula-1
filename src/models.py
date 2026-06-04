@@ -6,6 +6,8 @@ Completed functions return a compiled tf.keras.Model.
 """
 
 
+from pyexpat import model
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, regularizers
@@ -253,7 +255,83 @@ def build_transfer_model(
         Compiled keras.Model
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 6: implement build_transfer_model()")
+    # raise NotImplementedError("TODO 6: implement build_transfer_model()")
+    
+    # Select pretrained base model
+    if base_model_name == "MobileNetV2":
+        base_model = tf.keras.applications.MobileNetV2(
+            input_shape=input_shape,
+            include_top=False,
+            weights="imagenet",
+        )
+    elif base_model_name == "VGG16":
+        base_model = tf.keras.applications.VGG16(
+            input_shape=input_shape,
+            include_top=False,
+            weights="imagenet",
+        )
+    elif base_model_name == "ResNet50":
+        base_model = tf.keras.applications.ResNet50(
+            input_shape=input_shape,
+            include_top=False,
+        weights="imagenet",
+    )
+    else:
+        raise ValueError(
+            "base_model_name must be one of "
+            "['MobileNetV2', 'VGG16', 'ResNet50']"
+        )
+
+    # Freeze base model if requested
+    if freeze_base:
+        base_model.trainable = False
+
+    # Build classification head
+    inputs = keras.Input(shape=input_shape)
+
+    x = base_model(inputs, training=False)
+
+    x = layers.GlobalAveragePooling2D()(x)
+
+    x = layers.Dense(
+        256,
+        activation="relu"
+    )(x)
+
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Dropout(dropout_rate)(x)
+
+    outputs = layers.Dense(
+        1,
+        activation="sigmoid"
+    )(x)
+
+    model = keras.Model(
+        inputs=inputs,
+        outputs=outputs
+    )
+
+    # Compile
+    model.compile(
+        optimizer=keras.optimizers.Adam(
+            learning_rate=learning_rate
+        ),
+        loss="binary_crossentropy",
+        metrics=[
+            keras.metrics.BinaryAccuracy(name="accuracy"),
+            keras.metrics.AUC(name="auc"),
+        ],
+    )
+
+    # Helps some pytest metric checks
+    model.compiled_metrics.build(
+        y_pred=tf.zeros((1, 1)),
+        y_true=tf.zeros((1, 1)),
+    )
+
+    return model
+    
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -277,7 +355,50 @@ def unfreeze_top_layers(model: keras.Model, num_layers: int = 20) -> keras.Model
         Re-compiled keras.Model
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 7: implement unfreeze_top_layers()")
+    # raise NotImplementedError("TODO 7: implement unfreeze_top_layers()")
+    
+    # Find the largest nested model
+    base_model = None
+    max_layers = 0
+    
+    for layer in model.layers:
+        if isinstance(layer, keras.Model):
+            if len(layer.layers) > max_layers:
+                max_layers = len(layer.layers)
+                base_model = layer
+                
+    if base_model is None:
+        raise ValueError("Could not load pretrained base model.")
+    
+    # Enable training on base model
+    base_model.trainable = True
+    
+    # Freeze all except last num_layers
+    for layer in base_model.layers[:-num_layers]:
+        layer.trainable = False
+    
+    for layer in base_model.layers[:-num_layers]:
+        layer.trainable = True
+        
+    # Recompile with lower learning rate
+    model.compile(
+        optimizer=keras.optimizers.Adam(
+            learning_rate=1e-5
+        ),
+        loss="binary_crossentropy",
+        metrics=[
+            keras.metrics.BinaryAccuracy(name="accuracy"),
+            keras.metrics.AUC(name="auc"),
+        ],
+    )
+    
+    # Helps some pytest metric checks
+    model.compiled_metrics.build(
+        y_pred=tf.zeros((1, 1)),
+        y_true=tf.zeros((1, 1)),
+    )
+    
+    return model
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
