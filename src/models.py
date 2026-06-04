@@ -270,12 +270,6 @@ def build_transfer_model(
             include_top=False,
             weights="imagenet",
         )
-    elif base_model_name == "VGG16":
-        base_model = tf.keras.applications.VGG16(
-            input_shape=input_shape,
-            include_top=False,
-            weights="imagenet",
-        )
     elif base_model_name == "ResNet50":
         base_model = tf.keras.applications.ResNet50(
             input_shape=input_shape,

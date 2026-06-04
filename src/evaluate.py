@@ -42,15 +42,20 @@ def evaluate_model(model: keras.Model, test_data) -> dict:
     
     from sklearn.metrics import precision_score, recall_score, f1_score
     # Generate prediction probabilities
-    y_probs = model.predict(test_data).squeeze()
+    # y_probs = model.predict(test_data).squeeze()
+    y_probs = model.predict(test_data, verbose=1).squeeze()
 
     # Convert probabilities to binary predictions
     y_pred = (y_probs >= 0.5).astype(int)
+    
+    test_data.reset()
+    y_true = test_data.classes
 
     # Collect true labels
-    y_true = np.concatenate(
-        [y for _, y in test_data]
-    )
+    # y_true = np.concatenate(
+    #     [y for _, y in test_data]
+    # )
+    y_true = test_data.classes
 
     # Return all required metrics
     return {
