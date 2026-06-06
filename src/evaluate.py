@@ -125,7 +125,33 @@ def plot_roc_curve(y_true: np.ndarray, y_probs: np.ndarray, model_name: str = "M
         model_name: Name shown in the plot legend.
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 14: implement plot_roc_curve()")
+    # raise NotImplementedError("TODO 14: implement plot_roc_curve()")
+    fpr, tpr, _ = roc_curve(y_true, y_probs)
+    auc_score = roc_auc_score(y_true, y_probs)
+    
+    plt.figure(figsize=(6, 5))
+    
+    plt.plot(
+        fpr, 
+        tpr, 
+        label=f"{model_name} (AUC = {auc_score:.4f})"
+    )
+    
+    plt.plot(
+        [0, 1], 
+        [0, 1], 
+        linestyle='--',
+        label='Random Classifier'
+    )
+    
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve")
+    plt.legend(loc="lower right")
+    plt.grid(True)
+    
+    plt.tight_layout()
+    plt.show()
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
