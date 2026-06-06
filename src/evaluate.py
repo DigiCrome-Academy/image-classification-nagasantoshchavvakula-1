@@ -48,14 +48,16 @@ def evaluate_model(model: keras.Model, test_data) -> dict:
     # Convert probabilities to binary predictions
     y_pred = (y_probs >= 0.5).astype(int)
     
-    test_data.reset()
-    y_true = test_data.classes
+    # Reset the generator to start from the beginning
+    # test_data.reset() 
+    
+    # If test_data is a ImageDataGenerator, it has a 'classes' attribute with true labels
+    # y_true = test_data.classes 
 
     # Collect true labels
-    # y_true = np.concatenate(
-    #     [y for _, y in test_data]
-    # )
-    y_true = test_data.classes
+    y_true = np.concatenate(
+        [y for _, y in test_data]
+    )
 
     # Return all required metrics
     return {
@@ -64,7 +66,7 @@ def evaluate_model(model: keras.Model, test_data) -> dict:
         "recall": recall_score(y_true, y_pred),
         "f1": f1_score(y_true, y_pred),
         "auc": roc_auc_score(y_true, y_probs),
-        "roc_curve": roc_curve(y_true, y_probs),
+        # "roc_curve": roc_curve(y_true, y_probs),
         "confusion_matrix": confusion_matrix(y_true, y_pred),
         "classification_report": classification_report(y_true, y_pred),
     }
