@@ -91,7 +91,20 @@ def plot_confusion_matrix(cm: np.ndarray, class_names: list = None) -> None:
     if class_names is None:
         class_names = ["NORMAL", "PNEUMONIA"]
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 13: implement plot_confusion_matrix()")
+    # raise NotImplementedError("TODO 13: implement plot_confusion_matrix()")
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(
+        cm, annot=True, 
+        fmt='d', 
+        cmap='Blues',
+        xticklabels=class_names, 
+        yticklabels=class_names
+    )
+    plt.title("Confusion Matrix")
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+    plt.tight_layout()
+    plt.show()
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
