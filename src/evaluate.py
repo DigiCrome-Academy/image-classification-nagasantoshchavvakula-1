@@ -185,7 +185,34 @@ def grad_cam(
         np.ndarray of shape (h, w), values in [0, 1].
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 15: implement grad_cam()")
+    # raise NotImplementedError("TODO 15: implement grad_cam()")
+    # Build a model that outputs the last conv layer and the final output
+    grad_model = tf.keras.Model(
+        inputs=model.inputs,
+        outputs=[model.get_layer(last_conv_layer_name).output, model.output]
+    )
+    with tf.GradientTape() as tape:
+        conv_outputs, predictions = grad_model(img_array)
+        class_idx = tf.argmax(predictions[0])
+        class_score = predictions[0][class_idx]
+    # Compute gradients of the class score with respect to conv outputs
+    grads = tape.gradient(class_score, conv_outputs)
+    # Pool gradients spatially
+    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+    # Weight the conv outputs by the pooled gradients
+    conv_outputs = conv_outputs[0]
+    heatmap = tf.reduce_sum(
+        conv_outputs * pooled_grads, 
+        axis=-1
+    )
+    heatmap = tf.nn.relu(heatmap) # Apply ReLU
+    max_val = tf.reduce_max(heatmap) # Normalise to [0, 1]
+    
+    if max_val > 0:
+        heatmap /= max_val
+        
+    return heatmap.numpy()
+
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
