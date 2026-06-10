@@ -427,5 +427,20 @@ def build_ensemble(models: list, input_shape: tuple = (224, 224, 3)) -> keras.Mo
         keras.Model (not compiled — outputs averaged probability)
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 8: implement build_ensemble()")
+    # raise NotImplementedError("TODO 8: implement build_ensemble()")
+    # 1. Freeze all constituent models
+    for m in models:
+        m.trainable = False
+
+    # 2. Create a shared input
+    inputs = tf.keras.Input(shape=input_shape)
+
+    # 3. Pass input through each model
+    outputs = [m(inputs) for m in models]
+
+    # 4. Average the probability outputs
+    averaged = tf.keras.layers.Average()(outputs)
+
+    # 5. Return the ensemble model (do NOT compile — just return it)
+    return tf.keras.Model(inputs=inputs, outputs=averaged)
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
