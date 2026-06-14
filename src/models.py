@@ -5,6 +5,9 @@ Each function contains TODO stubs that students must implement.
 Completed functions return a compiled tf.keras.Model.
 """
 
+
+from pyexpat import model
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, regularizers
@@ -49,7 +52,60 @@ def build_baseline_mlp(
         Compiled keras.Model
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 4: implement build_baseline_mlp()")
+    # raise NotImplementedError("TODO 4: implement build_baseline_mlp()")
+
+    # Metric instance
+    accuracy_metric = keras.metrics.BinaryAccuracy(name="accuracy")
+
+    # Custom Sequential model
+    class CustomSequential(keras.Sequential):
+
+        @property
+        def metrics(self):
+
+            # preserve ALL keras internal metrics
+            base_metrics = super().metrics
+
+            # avoid duplicate metric insertion
+            metric_names = [m.name for m in base_metrics]
+
+            if "accuracy" not in metric_names:
+                base_metrics.append(accuracy_metric)
+
+            return base_metrics
+
+    optimizer_instance = keras.optimizers.get({
+        "class_name": optimizer,
+        "config": {"learning_rate": learning_rate},
+    })
+
+    model = keras.Sequential([
+        layers.Input(shape=input_shape),
+        layers.Flatten(),
+
+        layers.Dense(512, activation=activation),
+        layers.Dense(256, activation=activation),
+        layers.Dense(128, activation=activation),
+
+        layers.Dense(num_classes, activation="sigmoid"),
+    ])
+
+    model.compile(
+        optimizer=optimizer_instance,
+        loss="binary_crossentropy",
+        metrics=[
+            keras.metrics.BinaryAccuracy(name="accuracy")
+        ],
+    )
+
+    # IMPORTANT FIX FOR PYTEST
+    model.compiled_metrics.build(
+        y_pred=tf.zeros((1, 1)),
+        y_true=tf.zeros((1, 1)),
+    )
+
+    return model
+
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -90,7 +146,69 @@ def build_advanced_nn(
         Compiled keras.Model
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 5: implement build_advanced_nn()")
+    # raise NotImplementedError("TODO 5: implement build_advanced_nn()")
+    
+    inputs = keras.Input(shape=input_shape)
+
+    x = layers.Flatten()(inputs)
+
+    x = layers.Dense(
+        512,
+        activation="relu",
+        kernel_regularizer=regularizers.l2(l2_lambda)
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(dropout_rate)(x)
+
+    x = layers.Dense(
+        256,
+        activation="relu",
+        kernel_regularizer=regularizers.l2(l2_lambda)
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(dropout_rate)(x)
+
+    x = layers.Dense(
+        128,
+        activation="relu",
+        kernel_regularizer=regularizers.l2(l2_lambda)
+    )(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Dense(
+        64,
+        activation="relu",
+        kernel_regularizer=regularizers.l2(l2_lambda)
+    )(x)
+    x = layers.BatchNormalization()(x)
+
+    outputs = layers.Dense(1, activation="sigmoid")(x)
+
+    model = keras.Model(inputs=inputs, outputs=outputs)
+
+    optimizer_instance = keras.optimizers.Adam(
+        learning_rate=learning_rate,
+        clipnorm=1.0,
+    )
+
+    model.compile(
+        optimizer=optimizer_instance,
+        loss="binary_crossentropy",
+        metrics=[
+            keras.metrics.BinaryAccuracy(name="accuracy"),
+            keras.metrics.AUC(name="auc"),
+        ],
+    )
+
+    # IMPORTANT FIX FOR PYTEST
+    model.compiled_metrics.build(
+        y_pred=tf.zeros((1, 1)),
+        y_true=tf.zeros((1, 1)),
+    )
+
+    return model
+    
+
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -137,7 +255,83 @@ def build_transfer_model(
         Compiled keras.Model
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 6: implement build_transfer_model()")
+    # raise NotImplementedError("TODO 6: implement build_transfer_model()")
+    
+    # Select pretrained base model
+    if base_model_name == "MobileNetV2":
+        base_model = tf.keras.applications.MobileNetV2(
+            input_shape=input_shape,
+            include_top=False,
+            weights="imagenet",
+        )
+    elif base_model_name == "VGG16":
+        base_model = tf.keras.applications.VGG16(
+            input_shape=input_shape,
+            include_top=False,
+            weights="imagenet",
+        )
+    elif base_model_name == "ResNet50":
+        base_model = tf.keras.applications.ResNet50(
+            input_shape=input_shape,
+            include_top=False,
+        weights="imagenet",
+    )
+    else:
+        raise ValueError(
+            "base_model_name must be one of "
+            "['MobileNetV2', 'VGG16', 'ResNet50']"
+        )
+
+    # Freeze base model if requested
+    if freeze_base:
+        base_model.trainable = False
+
+    # Build classification head
+    inputs = keras.Input(shape=input_shape)
+
+    x = base_model(inputs, training=False)
+
+    x = layers.GlobalAveragePooling2D()(x)
+
+    x = layers.Dense(
+        256,
+        activation="relu"
+    )(x)
+
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Dropout(dropout_rate)(x)
+
+    outputs = layers.Dense(
+        1,
+        activation="sigmoid"
+    )(x)
+
+    model = keras.Model(
+        inputs=inputs,
+        outputs=outputs
+    )
+
+    # Compile
+    model.compile(
+        optimizer=keras.optimizers.Adam(
+            learning_rate=learning_rate
+        ),
+        loss="binary_crossentropy",
+        metrics=[
+            keras.metrics.BinaryAccuracy(name="accuracy"),
+            keras.metrics.AUC(name="auc"),
+        ],
+    )
+
+    # Helps some pytest metric checks
+    model.compiled_metrics.build(
+        y_pred=tf.zeros((1, 1)),
+        y_true=tf.zeros((1, 1)),
+    )
+
+    return model
+    
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -161,7 +355,50 @@ def unfreeze_top_layers(model: keras.Model, num_layers: int = 20) -> keras.Model
         Re-compiled keras.Model
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 7: implement unfreeze_top_layers()")
+    # raise NotImplementedError("TODO 7: implement unfreeze_top_layers()")
+    
+    # Find the largest nested model
+    base_model = None
+    max_layers = 0
+    
+    for layer in model.layers:
+        if isinstance(layer, keras.Model):
+            if len(layer.layers) > max_layers:
+                max_layers = len(layer.layers)
+                base_model = layer
+                
+    if base_model is None:
+        raise ValueError("Could not load pretrained base model.")
+    
+    # Enable training on base model
+    base_model.trainable = True
+    
+    # Freeze all except last num_layers
+    for layer in base_model.layers[:-num_layers]:
+        layer.trainable = False
+    
+    for layer in base_model.layers[:-num_layers]:
+        layer.trainable = True
+        
+    # Recompile with lower learning rate
+    model.compile(
+        optimizer=keras.optimizers.Adam(
+            learning_rate=1e-5
+        ),
+        loss="binary_crossentropy",
+        metrics=[
+            keras.metrics.BinaryAccuracy(name="accuracy"),
+            keras.metrics.AUC(name="auc"),
+        ],
+    )
+    
+    # Helps some pytest metric checks
+    model.compiled_metrics.build(
+        y_pred=tf.zeros((1, 1)),
+        y_true=tf.zeros((1, 1)),
+    )
+    
+    return model
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -190,5 +427,20 @@ def build_ensemble(models: list, input_shape: tuple = (224, 224, 3)) -> keras.Mo
         keras.Model (not compiled — outputs averaged probability)
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 8: implement build_ensemble()")
+    # raise NotImplementedError("TODO 8: implement build_ensemble()")
+    # 1. Freeze all constituent models
+    for m in models:
+        m.trainable = False
+
+    # 2. Create a shared input
+    inputs = tf.keras.Input(shape=input_shape)
+
+    # 3. Pass input through each model
+    outputs = [m(inputs) for m in models]
+
+    # 4. Average the probability outputs
+    averaged = tf.keras.layers.Average()(outputs)
+
+    # 5. Return the ensemble model (do NOT compile — just return it)
+    return tf.keras.Model(inputs=inputs, outputs=averaged)
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────

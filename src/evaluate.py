@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 from sklearn.metrics import (
+    accuracy_score,
     classification_report,
     confusion_matrix,
     roc_auc_score,
@@ -37,7 +38,39 @@ def evaluate_model(model: keras.Model, test_data) -> dict:
         dict of evaluation metrics.
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 12: implement evaluate_model()")
+    # raise NotImplementedError("TODO 12: implement evaluate_model()")
+    
+    from sklearn.metrics import precision_score, recall_score, f1_score
+    # Generate prediction probabilities
+    # y_probs = model.predict(test_data).squeeze()
+    y_probs = model.predict(test_data, verbose=1).squeeze()
+
+    # Convert probabilities to binary predictions
+    y_pred = (y_probs >= 0.5).astype(int)
+    
+    # Reset the generator to start from the beginning
+    # test_data.reset() 
+    
+    # If test_data is a ImageDataGenerator, it has a 'classes' attribute with true labels
+    # y_true = test_data.classes 
+
+    # Collect true labels
+    y_true = np.concatenate(
+        [y for _, y in test_data]
+    )
+
+    # Return all required metrics
+    return {
+        "accuracy": accuracy_score(y_true, y_pred),
+        "precision": precision_score(y_true, y_pred),
+        "recall": recall_score(y_true, y_pred),
+        "f1": f1_score(y_true, y_pred),
+        "auc": roc_auc_score(y_true, y_probs),
+        # "roc_curve": roc_curve(y_true, y_probs),
+        "confusion_matrix": confusion_matrix(y_true, y_pred),
+        "classification_report": classification_report(y_true, y_pred),
+    }
+    
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -58,7 +91,20 @@ def plot_confusion_matrix(cm: np.ndarray, class_names: list = None) -> None:
     if class_names is None:
         class_names = ["NORMAL", "PNEUMONIA"]
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 13: implement plot_confusion_matrix()")
+    # raise NotImplementedError("TODO 13: implement plot_confusion_matrix()")
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(
+        cm, annot=True, 
+        fmt='d', 
+        cmap='Blues',
+        xticklabels=class_names, 
+        yticklabels=class_names
+    )
+    plt.title("Confusion Matrix")
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+    plt.tight_layout()
+    plt.show()
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -79,7 +125,33 @@ def plot_roc_curve(y_true: np.ndarray, y_probs: np.ndarray, model_name: str = "M
         model_name: Name shown in the plot legend.
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 14: implement plot_roc_curve()")
+    # raise NotImplementedError("TODO 14: implement plot_roc_curve()")
+    fpr, tpr, _ = roc_curve(y_true, y_probs)
+    auc_score = roc_auc_score(y_true, y_probs)
+    
+    plt.figure(figsize=(6, 5))
+    
+    plt.plot(
+        fpr, 
+        tpr, 
+        label=f"{model_name} (AUC = {auc_score:.4f})"
+    )
+    
+    plt.plot(
+        [0, 1], 
+        [0, 1], 
+        linestyle='--',
+        label='Random Classifier'
+    )
+    
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve")
+    plt.legend(loc="lower right")
+    plt.grid(True)
+    
+    plt.tight_layout()
+    plt.show()
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -113,7 +185,34 @@ def grad_cam(
         np.ndarray of shape (h, w), values in [0, 1].
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 15: implement grad_cam()")
+    # raise NotImplementedError("TODO 15: implement grad_cam()")
+    # Build a model that outputs the last conv layer and the final output
+    grad_model = tf.keras.Model(
+        inputs=model.inputs,
+        outputs=[model.get_layer(last_conv_layer_name).output, model.output]
+    )
+    with tf.GradientTape() as tape:
+        conv_outputs, predictions = grad_model(img_array)
+        class_idx = tf.argmax(predictions[0])
+        class_score = predictions[0][class_idx]
+    # Compute gradients of the class score with respect to conv outputs
+    grads = tape.gradient(class_score, conv_outputs)
+    # Pool gradients spatially
+    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+    # Weight the conv outputs by the pooled gradients
+    conv_outputs = conv_outputs[0]
+    heatmap = tf.reduce_sum(
+        conv_outputs * pooled_grads, 
+        axis=-1
+    )
+    heatmap = tf.nn.relu(heatmap) # Apply ReLU
+    max_val = tf.reduce_max(heatmap) # Normalise to [0, 1]
+    
+    if max_val > 0:
+        heatmap /= max_val
+        
+    return heatmap.numpy()
+
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 

@@ -66,7 +66,53 @@ def get_data_generators(
         (train_generator, val_generator, test_generator)
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 1: implement get_data_generators()")
+    # raise NotImplementedError("TODO 1: implement get_data_generators()")
+    data_dir = Path(data_dir)
+    
+    # Training augmentation
+    if augment_train:
+        train_datagen = ImageDataGenerator(
+            rescale=1.0/255,
+            horizontal_flip=True,
+            rotation_range=10,
+            zoom_range=0.1,
+            width_shift_range=0.1,
+            height_shift_range=0.1
+        )
+    else:
+        train_datagen = ImageDataGenerator(
+            rescale=1./255
+        )
+    # Validation and Test generators (no augmentation)
+    val_test_datagen = ImageDataGenerator(
+        rescale=1.0/255
+    )
+    # Train generator
+    train_gen = train_datagen.flow_from_directory(
+        directory=data_dir / "train",
+        target_size=img_size,
+        batch_size=batch_size,
+        class_mode='binary',
+        seed=SEED
+    )
+    # Validation generator
+    val_gen = val_test_datagen.flow_from_directory(
+        directory=data_dir / "val",
+        target_size=img_size,
+        batch_size=batch_size,
+        class_mode='binary',
+        seed=SEED
+    )
+    # Test generator
+    test_gen = val_test_datagen.flow_from_directory(
+        directory=data_dir / "test",
+        target_size=img_size,
+        batch_size=batch_size,
+        class_mode='binary',
+        seed=SEED
+    )
+    
+    return train_gen, val_gen, test_gen
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -98,7 +144,71 @@ def get_tf_datasets(
         (train_dataset, val_dataset, test_dataset)
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 2: implement get_tf_datasets()")
+    # raise NotImplementedError("TODO 2: implement get_tf_datasets()")
+    data_dir = Path(data_dir)
+    
+    # Load datasets
+    train_ds = tf.keras.utils.image_dataset_from_directory(
+        data_dir / "train",
+        image_size=img_size,
+        batch_size=batch_size,
+        label_mode='binary',
+        shuffle=True,
+        seed=SEED
+    )
+    val_ds = tf.keras.utils.image_dataset_from_directory(
+        data_dir / "val",
+        image_size=img_size,
+        batch_size=batch_size,
+        label_mode='binary',
+        shuffle=False,
+        seed=SEED
+    )
+    test_ds = tf.keras.utils.image_dataset_from_directory(
+        data_dir / "test",
+        image_size=img_size,
+        batch_size=batch_size,
+        label_mode='binary',
+        shuffle=False,
+        seed=SEED
+    )
+    
+    # Normalisation layer
+    normalization_layer = tf.keras.layers.Rescaling(1.0/255)
+    
+    # Data Augmentation pipeline
+    data_augmentation = tf.keras.Sequential([
+        tf.keras.layers.RandomFlip("horizontal"),
+        tf.keras.layers.RandomRotation(0.1)
+    ])
+    
+    # Normalize datasets
+    train_ds = train_ds.map(
+        lambda x, y: (normalization_layer(x), y),
+        num_parallel_calls=tf.data.AUTOTUNE
+    )
+    val_ds = val_ds.map(
+        lambda x, y: (normalization_layer(x), y),
+        num_parallel_calls=tf.data.AUTOTUNE
+    )
+    test_ds = test_ds.map(
+        lambda x, y: (normalization_layer(x), y),
+        num_parallel_calls=tf.data.AUTOTUNE
+    )
+    
+    # Apply augmentation to training set if specified
+    if augment_train:
+        train_ds = train_ds.map(
+            lambda x, y: (data_augmentation(x, training=True), y),
+            num_parallel_calls=tf.data.AUTOTUNE
+        )
+        
+    # Cache, Shuffle and prefetch
+    train_ds = train_ds.cache().shuffle(1000).prefetch(tf.data.AUTOTUNE)
+    val_ds = val_ds.cache().prefetch(tf.data.AUTOTUNE)
+    test_ds = test_ds.cache().prefetch(tf.data.AUTOTUNE)
+    
+    return train_ds, val_ds, test_ds
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
@@ -123,7 +233,18 @@ def compute_class_weights(train_generator) -> dict:
         dict: {class_index: weight}
     """
     # ── YOUR CODE STARTS HERE ─────────────────────────────────────────────
-    raise NotImplementedError("TODO 3: implement compute_class_weights()")
+    # raise NotImplementedError("TODO 3: implement compute_class_weights()")
+    from sklearn.utils.class_weight import compute_class_weight
+    import numpy as np
+    
+    classes = np.unique(train_generator.classes)
+    
+    class_weights = compute_class_weight(
+        class_weight='balanced',
+        classes=classes,
+        y=train_generator.classes
+    )
+    return dict(enumerate(class_weights))
     # ── YOUR CODE ENDS HERE ───────────────────────────────────────────────
 
 
